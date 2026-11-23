@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5d4b">
+<title>Reprova UFCSPA</title>
+<style>
+  :root {
+    --bg: #f3f5f4; --card: #fff; --text: #1b2421; --muted: #6b7672; --line: #dde3e0;
+    --primary: #0b5d4b; --ok: #1a8f4c; --warn: #c27c0e; --bad: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #101513; --card: #1a2120; --text: #e8eeec; --muted: #94a19c; --line: #2c3634;
+      --primary: #3cc39f; --ok: #3fcf7d; --warn: #f0b046; --bad: #ff6b5b; }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100dvh; overflow: hidden;
+    display: flex; justify-content: center;
+  }
+  .app {
+    width: 100%; max-width: 480px; height: 100%;
+    display: flex; flex-direction: column; gap: 10px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { font-size: 1.15rem; }
+  h1 span { color: var(--primary); }
+  .seg { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: .85rem;
+    padding: 6px 12px; border-radius: 7px; cursor: pointer; }
+  .seg button.on { background: var(--primary); color: #fff; font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+  .list { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .cols, .row { display: grid; grid-template-columns: 28px 1fr 1fr 36px; gap: 8px; align-items: center; }
+  .cols { font-size: .75rem; color: var(--muted); padding-bottom: 6px; }
+  .rows { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+  .row .n { color: var(--muted); font-size: .85rem; text-align: center; }
+  input {
+    width: 100%; font: inherit; font-size: 16px; padding: 9px 10px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text); text-align: center;
+  }
+  input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+  .del { border: 0; background: none; color: var(--bad); font-size: 1.3rem; cursor: pointer; height: 36px; }
+  .actions { display: flex; gap: 8px; margin-top: 8px; }
+  .actions button { flex: 1; font: inherit; font-size: .9rem; padding: 9px; border-radius: 9px; cursor: pointer;
+    border: 1px dashed var(--primary); background: none; color: var(--primary); font-weight: 600; }
+  .actions button.sec { border-color: var(--line); color: var(--muted); font-weight: 500; }
+  .warns { display: flex; flex-direction: column; gap: 4px; }
+  .warn { font-size: .8rem; color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent);
+    padding: 6px 10px; border-radius: 8px; }
+  .result { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat .lbl { font-size: .75rem; color: var(--muted); }
+  .stat .val { font-size: 1.9rem; font-weight: 700; line-height: 1.15; }
+  .badge { grid-column: 1 / -1; text-align: center; font-weight: 700; padding: 10px; border-radius: 10px;
+    color: #fff; background: var(--muted); font-size: 1rem; }
+  .badge.ok { background: var(--ok); } .badge.ex { background: var(--warn); } .badge.bad { background: var(--bad); }
+  .exam { grid-column: 1 / -1; font-size: .85rem; color: var(--muted); text-align: center; }
+  .exam b { color: var(--text); font-size: 1rem; }
+  footer { font-size: .7rem; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>Reprova<span>UFCSPA</span></h1>
+    <div class="seg" role="tablist" aria-label="Tipo de peso">
+      <button id="mPeso" class="on">Peso</button>
+      <button id="mPct">%</button>
+    </div>
+  </header>
+
+  <section class="card list">
+    <div class="cols"><span></span><span>Nota (0–10)</span><span id="colPeso">Peso</span><span></span></div>
+    <div class="rows" id="rows"></div>
+    <div class="actions">
+      <button id="add">+ Nota</button>
+      <button id="clear" class="sec">Limpar</button>
+    </div>
+  </section>
+
+  <div class="warns" id="warns"></div>
+
+  <section class="card result">
+    <div class="stat"><div class="lbl">Média do semestre</div><div class="val" id="media">–</div></div>
+    <div class="stat"><div class="lbl">Peso total</div><div class="val" id="total">–</div></div>
+    <div class="badge" id="badge">Preencha as notas</div>
+    <div class="exam" id="exam">Aprovado ≥ 7 · Exame 4 a 6,9 · Reprovado &lt; 4</div>
+  </section>
+
+  <footer>Exame: final = 60% semestre + 40% exame, precisa de 6,0</footer>
+</main>
+
+<script>
+  const rowsEl = document.getElementById('rows');
+  const $ = id => document.getElementById(id);
+  let mode = 'peso';
+  const fmt = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  const num = s => { const v = parseFloat(String(s).replace(',', '.')); return isNaN(v) ? null : v; };
+
+  function addRow(nota = '', peso = '') {
+    const r = document.createElement('div');
+    r.className = 'row';
+    r.innerHTML = `<span class="n"></span>
+      <input class="nota" inputmode="decimal" placeholder="0,0" value="${nota}">
+      <input class="peso" inputmode="decimal" value="${peso}">
+      <button class="del" aria-label="Remover">×</button>`;
+    r.querySelector('.del').onclick = () => { r.remove(); update(); };
+    rowsEl.appendChild(r);
+    update();
+    return r;
+  }
+
+  function setMode(m) {
+    mode = m;
+    $('mPeso').classList.toggle('on', m === 'peso');
+    $('mPct').classList.toggle('on', m === 'pct');
+    $('colPeso').textContent = m === 'peso' ? 'Peso' : 'Porcentagem (%)';
+    update();
+  }
+
+  function update() {
+    const rows = [...rowsEl.children];
+    const warns = [];
+    let sumW = 0, sumNW = 0, filled = 0, invalid = false;
+
+    rows.forEach((r, i) => {
+      r.querySelector('.n').textContent = i + 1;
+      const pIn = r.querySelector('.peso');
+      pIn.placeholder = mode === 'peso' ? '1' : (100 / rows.length).toFixed(0);
+      const n = num(r.querySelector('.nota').value);
+      let p = num(pIn.value);
+      if (p === null) p = mode === 'peso' ? 1 : 100 / rows.length;
+      if (n === null) return;
+      if (n < 0 || n > 10 || p < 0) { invalid = true; return; }
+      filled++; sumW += p; sumNW += n * p;
+    });
+
+    if (rows.length < 3) warns.push('O mínimo recomendado são 3 notas.');
+    if (invalid) warns.push('Notas devem estar entre 0 e 10 e pesos não podem ser negativos.');
+    if (mode === 'pct' && filled === rows.length && filled > 0 && Math.abs(sumW - 100) > 0.01)
+      warns.push(`As porcentagens somam ${fmt(sumW)}%, não 100%. Média calculada proporcionalmente.`);
+    if (filled > 0 && filled < rows.length) warns.push(`Faltam ${rows.length - filled} nota(s). Média parcial.`);
+    $('warns').innerHTML = warns.map(w => `<div class="warn">${w}</div>`).join('');
+
+    $('total').textContent = filled ? (mode === 'pct' ? fmt(sumW) + '%' : fmt(sumW)) : '–';
+    const badge = $('badge'), exam = $('exam');
+    if (!filled || sumW === 0) {
+      $('media').textContent = '–';
+      badge.className = 'badge'; badge.textContent = 'Preencha as notas';
+      exam.innerHTML = 'Aprovado ≥ 7 · Exame 4 a 6,9 · Reprovado &lt; 4';
+      return;
+    }
+    const m = sumNW / sumW;
+    $('media').textContent = fmt(m);
+    if (m >= 7) {
+      badge.className = 'badge ok'; badge.textContent = 'Aprovado';
+      exam.innerHTML = 'Sem exame. Parabéns!';
+    } else if (m < 4) {
+      badge.className = 'badge bad'; badge.textContent = 'Reprovado';
+      exam.innerHTML = 'Média abaixo de 4, sem direito a exame.';
+    } else {
+      const e = Math.max(0, (6 - 0.6 * m) / 0.4);
+      badge.className = 'badge ex'; badge.textContent = 'Em exame';
+      exam.innerHTML = `Você precisa de <b>${fmt(e)}</b> no exame para fechar 6,0.`;
+    }
+  }
+
+  rowsEl.addEventListener('input', update);
+  $('add').onclick = () => addRow().querySelector('.nota').focus();
+  $('clear').onclick = () => { rowsEl.innerHTML = ''; for (let i = 0; i < 3; i++) addRow(); };
+  $('mPeso').onclick = () => setMode('peso');
+  $('mPct').onclick = () => setMode('pct');
+  for (let i = 0; i < 3; i++) addRow();
+</script>
+</body>
+</html>
